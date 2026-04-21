@@ -63,6 +63,7 @@ MAX_DEPTH = 1  # flat by default: parent (0) -> child (1); grandchild rejected u
 # stays as the default fallback and is still the symbol tests import.
 _MIN_SPAWN_DEPTH = 1
 _MAX_SPAWN_DEPTH_CAP = 3
+_LOCAL_NO_AUTH_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
 def _normalize_role(r: Optional[str]) -> str:
@@ -1254,10 +1255,13 @@ def _resolve_delegation_credentials(cfg: dict, parent_agent) -> dict:
     configured_api_key = str(cfg.get("api_key") or "").strip() or None
 
     if configured_base_url:
+        hostname = base_url_hostname(configured_base_url)
         api_key = (
             configured_api_key
             or os.getenv("OPENAI_API_KEY", "").strip()
         )
+        if not api_key and hostname in _LOCAL_NO_AUTH_HOSTS:
+            api_key = "no-key-required"
         if not api_key:
             raise ValueError(
                 "Delegation base_url is configured but no API key was found. "
@@ -1273,7 +1277,7 @@ def _resolve_delegation_credentials(cfg: dict, parent_agent) -> dict:
         ):
             provider = "openai-codex"
             api_mode = "codex_responses"
-        elif base_url_hostname(configured_base_url) == "api.anthropic.com":
+        elif hostname == "api.anthropic.com":
             provider = "anthropic"
             api_mode = "anthropic_messages"
 

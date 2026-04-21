@@ -652,7 +652,7 @@ class TestDelegationCredentialResolution(unittest.TestCase):
         self.assertEqual(creds["api_key"], "env-openai-key")
         self.assertEqual(creds["provider"], "custom")
 
-    def test_direct_endpoint_does_not_fall_back_to_openrouter_api_key_env(self):
+    def test_direct_endpoint_without_key_uses_placeholder_not_openrouter_env(self):
         parent = _make_mock_parent(depth=0)
         cfg = {
             "model": "qwen2.5-coder",
@@ -666,9 +666,9 @@ class TestDelegationCredentialResolution(unittest.TestCase):
             },
             clear=False,
         ):
-            with self.assertRaises(ValueError) as ctx:
-                _resolve_delegation_credentials(cfg, parent)
-        self.assertIn("OPENAI_API_KEY", str(ctx.exception))
+            creds = _resolve_delegation_credentials(cfg, parent)
+        self.assertEqual(creds["api_key"], "no-key-required")
+        self.assertEqual(creds["provider"], "custom")
 
     @patch("hermes_cli.runtime_provider.resolve_runtime_provider")
     def test_nous_provider_resolves_nous_credentials(self, mock_resolve):
